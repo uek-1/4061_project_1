@@ -1,4 +1,6 @@
 #include "include/utility.h"
+#include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 void print_status(){
@@ -18,28 +20,43 @@ int main(int argc, char *argv[]) {
     int total_inputs = argc - 2;
     char* inputs[total_inputs];
 
-    for (int i = 3; i < argc; i++) {
-        inputs[i - 3] = argv[i];
+    for (int i = 2; i < argc; i++) {
+        inputs[i-2] = argv[i];
     }
 
     // Convert the first command-line argument to an integer to determine the batch size
     int batch_size = atoi(argv[1]);
 
+    int solution_count = 0;
 
     // write the file paths from the "solutions" directory into the submissions.txt file
     write_filepath_to_submissions("solutions", "submissions.txt");
+    // Open or create the output file
+    FILE *file;
+    int MAX_LINE_LENGTH = 256;
+    char line[MAX_LINE_LENGTH];
+
+    file = fopen("submissions.txt", "r");
+    if (!file) {
+        perror("Failed to open output file");
+        exit(EXIT_FAILURE);
+    }
+    int i = 0;
+    while (fgets(line, sizeof(line), file)){          
+        solution_count += 1;
+    }
+    char solution_names[solution_count][MAX_LINE_LENGTH];
+    rewind(file);
+    while (fgets(line, sizeof(line), file)) {
+        line[strcspn(line, "\n")] = '\0';
+        strncpy(solution_names[i], line, MAX_LINE_LENGTH - 1);
+        solution_names[i][MAX_LINE_LENGTH - 1] = '\0';  
+        i++;
+    }
 
 
     //TODO: read the executable filename from submissions.txt
-    
-    FILE* submissions_file = fopen("submissions.txt", "r");
-    if (submissions_file == NULL) {
-        perror("Failed to open submission file");
-        exit(EXIT_FAILURE);
-    }
 
-    int solution_count = 0;
-    char* solution_names[0];
     int total_batches = solution_count / batch_size;
     if (solution_count % batch_size != 0) {
         total_batches += 1;
@@ -57,15 +74,25 @@ int main(int argc, char *argv[]) {
 
     for (int input_number = 0; input_number < total_inputs; input_number++) {
         for (int batch_number = 0; batch_number < total_batches; batch_number++) {
-           for (int solution_idx = 0; solution_idx < batch_size; solution_idx++) {
+            printf(" -- BATCH %d -- \n", batch_number);
+            int real_batch_size = batch_size;
+            if (batch_number == total_batches - 1 && solution_count % batch_size != 0) {
+                real_batch_size = solution_count % batch_size;
+            }
+           for (int solution_idx = 0; solution_idx < real_batch_size; solution_idx++) {
                 if (fork() == 0) {
-                    printf("%d : %s %s", getpid(), batches[batch_number][solution_idx], inputs[input_number]);
-                    execv(batches[batch_number][solution_idx], &inputs[input_number]);
+                    printf("%d BATCH (%d): %s %s \n", getpid(), batch_number, batches[batch_number][solution_idx], inputs[input_number]);
+
+                    execl(batches[batch_number][solution_idx], batches[batch_number][solution_idx], inputs[input_number],NULL);
+                    return -1;
                 }
-            } 
-           for (int solution_idx = 0; solution_idx < batch_size; solution_idx++) {
-                int status;
-                waitpid(-1, &status, WNOHANG);
+
+                // int status;
+                // waitpid(-1, &status, 0);
+                // if (WIFEXITED(status) || WIFSIGNALED((status)) || WIFSTOPPED(status)) {
+                //     printf("EXITED\n");
+                // }
+                
             } 
         } 
     }
@@ -80,5 +107,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }     
-
-    
