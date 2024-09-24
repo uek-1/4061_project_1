@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
 
   for (int input_number = 0; input_number < total_inputs; input_number++) {
     for (int batch_number = 0; batch_number < total_batches; batch_number++) {
-      printf(" -- BATCH %d -- \n", batch_number);
+      printf("\n\n -- INPUT %d | BATCH %d -- \n\n", input_number, batch_number);
 
       // Last batch might have less than batch_size files
       int real_batch_size = batch_size;
@@ -133,14 +133,14 @@ int main(int argc, char *argv[]) {
           if (execl(batches[batch_number][solution_idx],
                     batches[batch_number][solution_idx], inputs[input_number],
                     NULL) == -1) {
-            printf("FAILURE! %d BATCH (%d) (%d): %s %s \n", getpid(),
+            printf("EXEC FAILURE! %d BATCH (%d) (%d): %s %s \n", getpid(),
                    batch_number, solution_idx,
                    batches[batch_number][solution_idx], inputs[input_number]);
           }
         } else if (current_pid == -1) {
           printf("ERROR FORKING!");
         } else {
-          batch_pids[solution_idx] = getpid();
+          batch_pids[solution_idx] = current_pid;
         }
       }
 
@@ -160,17 +160,30 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < real_batch_size; i++) {
           if (batch_pids[i] != -1) {
             if (WIFEXITED(batch_statuses[i])) {
-              solution_results[batch_size * batch_number + i][input_number] =
-                  WEXITSTATUS(batch_statuses[i]);
+              if (WEXITSTATUS(batch_statuses[i]) == 0) {
+                solution_results[batch_size * batch_number + i][input_number] =
+                    1;
+
+              } else if (WEXITSTATUS(batch_statuses[i]) == 1) {
+                solution_results[batch_size * batch_number + i][input_number] =
+                    0;
+
+              } else {
+                solution_results[batch_size * batch_number + i][input_number] =
+                    -1;
+              }
+              printf("exited with %d \n", WEXITSTATUS(batch_statuses[i]));
               finished_processes += 1;
               batch_pids[i] = -1;
-            } else if (WIFSIGNALED(batch_statuses[i])) {
+            } else if (WIFSIGNALED(batch_statuses[i]) && WTERMSIG(batch_statuses[i]) == 11) {
               solution_results[batch_size * batch_number + i][input_number] =
                   -1;
+              printf("signalled with %d \n", WTERMSIG(batch_statuses[i]));
               finished_processes += 1;
               batch_pids[i] = -1;
-            } else if (WIFSTOPPED(batch_statuses[i]) &&
-                       WSTOPSIG(batch_statuses[i]) == SIGSEGV) {
+            } else if (WIFSTOPPED(batch_statuses[i])) {
+
+              printf("stopped with %d \n", WSTOPSIG(batch_statuses[i]));
               solution_results[batch_size * batch_number + i][input_number] =
                   -1;
               finished_processes += 1;
@@ -178,7 +191,7 @@ int main(int argc, char *argv[]) {
             }
           }
         }
-        sleep(1);
+        // sleep(1);
       }
     }
   }
