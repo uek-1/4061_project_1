@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
   int solution_count = 0;
 
   // write the file paths from the "solutions" directory into the
-  // submissions.txt file
+  // submissions.txt file 
   write_filepath_to_submissions("solutions", "submissions.txt");
   // Open or create the output file
   FILE *submissions_file;
@@ -189,7 +189,6 @@ int main(int argc, char *argv[]) {
             }
           }
         }
-        // sleep(1);
       }
     }
   }
