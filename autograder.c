@@ -20,16 +20,33 @@ int main(int argc, char *argv[]) {
 
     // write the file paths from the "solutions" directory into the submissions.txt file
     write_filepath_to_submissions("solutions", "submissions.txt");
+        // Open or create the output file
+        FILE *file;
+        int MAX_LINE_LENGTH = 256;
+        char line[MAX_LINE_LENGTH];
+
+        file = fopen("submissions.txt", "r");
+        if (!file) {
+            perror("Failed to open output file");
+            exit(EXIT_FAILURE);
+        }
+        int array_size = 0;
+        int i = 0;
+        while (fgets(line, sizeof(line), file)){          
+            array_size += 1;
+        }
+        char sub_array[array_size][MAX_LINE_LENGTH];
+        rewind(file);
+        while (fgets(line, sizeof(line), file)) {
+            line[strcspn(line, "\n")] = '\0';
+            strncpy(sub_array[i], line, MAX_LINE_LENGTH - 1);
+            sub_array[i][MAX_LINE_LENGTH - 1] = '\0';  
+            i++;
+        }
 
 
     //TODO: read the executable filename from submissions.txt
 
-    
-    FILE* submissions_file = fopen("submissions.txt", "r");
-    if (submissions_file == NULL) {
-        perror("Failed to open submission file");
-        exit(EXIT_FAILURE);
-    }
 
 
     //TODO: For each parameter, run all executables in batch size chunks
@@ -40,4 +57,4 @@ int main(int argc, char *argv[]) {
 
 
     return 0;
-}     
+}
