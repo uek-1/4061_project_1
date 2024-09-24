@@ -80,14 +80,14 @@ int main(int argc, char *argv[]) {
     total_batches += 1;
   }
   char batches[total_batches][batch_size][MAX_LINE_LENGTH];
-  // memset(batches, '\0', total_batches * batch_size * MAX_LINE_LENGTH);
+  memset(batches, '\0', total_batches * batch_size * MAX_LINE_LENGTH);
 
   int temp_batch_count = 0;
   for (int i = 0; i < solution_count; i++) {
     if (i != 0 && i % batch_size == 0) {
       temp_batch_count += 1;
     }
-    strcpy(batches[temp_batch_count][i % batch_size], solution_names[i]);
+    strncpy(batches[temp_batch_count][i % batch_size], solution_names[i], MAX_LINE_LENGTH);
   }
 
   for (int i = 0; i < total_batches; i++) {
@@ -125,6 +125,11 @@ int main(int argc, char *argv[]) {
       memset(batch_pids, -1, sizeof(batch_pids[0]) * real_batch_size);
 
       // Spawn processes for solutions
+
+      //TODO: WHY DO WE NEED THIS LINE BELOW???
+      strncpy(batches[0][0], solution_names[0], MAX_LINE_LENGTH);
+
+
       for (int solution_idx = 0; solution_idx < real_batch_size;
            solution_idx++) {
         pid_t current_pid = fork();
