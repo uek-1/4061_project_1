@@ -1,6 +1,7 @@
 #include "include/utility.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 const int MAX_LINE_LENGTH = 256;
@@ -78,14 +79,15 @@ int main(int argc, char *argv[]) {
   if (solution_count % batch_size != 0) {
     total_batches += 1;
   }
-  char *batches[total_batches][batch_size];
+  char batches[total_batches][batch_size][MAX_LINE_LENGTH];
+  // memset(batches, '\0', total_batches * batch_size * MAX_LINE_LENGTH);
 
   int temp_batch_count = 0;
   for (int i = 0; i < solution_count; i++) {
     if (i != 0 && i % batch_size == 0) {
       temp_batch_count += 1;
     }
-    batches[temp_batch_count][i % batch_size] = solution_names[i];
+    strcpy(batches[temp_batch_count][i % batch_size], solution_names[i]);
   }
 
   for (int i = 0; i < total_batches; i++) {
@@ -136,6 +138,7 @@ int main(int argc, char *argv[]) {
             printf("EXEC FAILURE! %d BATCH (%d) (%d): %s %s \n", getpid(),
                    batch_number, solution_idx,
                    batches[batch_number][solution_idx], inputs[input_number]);
+            return -1;
           }
         } else if (current_pid == -1) {
           printf("ERROR FORKING!");
@@ -146,6 +149,7 @@ int main(int argc, char *argv[]) {
 
       // Wait on solution processes to exit
       int batch_statuses[real_batch_size];
+      memset(batch_statuses, -1, sizeof(batch_statuses[0]) * real_batch_size);
       int finished_processes = 0;
 
       while (finished_processes < real_batch_size) {
@@ -172,18 +176,18 @@ int main(int argc, char *argv[]) {
                 solution_results[batch_size * batch_number + i][input_number] =
                     -1;
               }
-              printf("exited with %d \n", WEXITSTATUS(batch_statuses[i]));
+              printf("%d exited with %d \n", batch_pids[i], WEXITSTATUS(batch_statuses[i]));
               finished_processes += 1;
               batch_pids[i] = -1;
             } else if (WIFSIGNALED(batch_statuses[i]) && WTERMSIG(batch_statuses[i]) == 11) {
               solution_results[batch_size * batch_number + i][input_number] =
                   -1;
-              printf("signalled with %d \n", WTERMSIG(batch_statuses[i]));
+              printf("%d signalled with %d \n", batch_pids[i], WTERMSIG(batch_statuses[i]));
               finished_processes += 1;
               batch_pids[i] = -1;
             } else if (WIFSTOPPED(batch_statuses[i])) {
 
-              printf("stopped with %d \n", WSTOPSIG(batch_statuses[i]));
+              printf("%d stopped with %d \n", batch_pids[i], WSTOPSIG(batch_statuses[i]));
               solution_results[batch_size * batch_number + i][input_number] =
                   -1;
               finished_processes += 1;
